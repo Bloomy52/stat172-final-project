@@ -52,5 +52,13 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# General macOS
+.DS_Store
+.localized
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[]
+
 # Data Files
 data/
