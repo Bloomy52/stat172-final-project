@@ -59,7 +59,14 @@ survey <- survey |>
   )) |> 
   drop_na("AISelect") |> 
   mutate(AISelect = ifelse(AISelect == "I don’t use AI tools", "No", "Yes"),
-         AISelect = as.factor(AISelect))
+         AISelect = as.factor(AISelect),
+         # Codex helped come up with this code for looping to remove NAs from
+         # non-numeric columns and set them to "Unanswered"
+         across(where(~ is.character(.x) || is.factor(.x)),~ {
+             x <- as.character(.x)
+             x[is.na(x) | trimws(x) == ""] <- "Unanswered"
+             x
+           })) 
 
 dim(survey)
 
@@ -85,15 +92,6 @@ multi_select_cols <- c(
 
 survey_clean <- survey
 
-for (column in multi_select_cols) {
-  
-  # Convert from factor to text
-  survey[[column]] <- as.character(survey[[column]])
-  
-  # Replace missing or blank answers
-  missing <- is.na(survey[[column]]) | trimws(survey[[column]]) == ""
-  survey[[column]][missing] <- "Unanswered"
-}
 
 for (column in multi_select_cols) {
   
@@ -119,4 +117,13 @@ for (column in multi_select_cols) {
   # Remove the original column after splitting it
   survey_clean[[column]] <- NULL
 }
+
+
+
+
+
+
+
+
+
 
