@@ -4,6 +4,8 @@
 # Copyright (c) 2026 Louie Bloomberg
 # SPDX-License-Identifier: GPL-3.0-only
 
+rm(list = ls())
+
 # Load Packages
 library(tidyverse)
 library(rpart)
@@ -13,7 +15,7 @@ library(randomForest)
 library(tidymodels)
 
 # Load Data
-data <- read.csv("data/survey_results_public.csv", 
+survey <- read.csv("data/survey_results_public.csv", 
                  stringsAsFactors = TRUE)
 
 # Subset data
@@ -22,7 +24,7 @@ data <- read.csv("data/survey_results_public.csv",
 # then predict AISelect which would be bad for the model as there would be
 # a response predicting a response. 
 
-data <- data |> 
+survey <- survey |> 
   select(-c(
     "LearnAI", "LearnAIHow", "EntSearchAdmired", "SecOpsAdmired",
     "JobEaseAI_1", "JobEaseAI_2", "JobEaseAI_3", "JobEaseAI_4", "JobEaseAI_5",
@@ -59,4 +61,62 @@ data <- data |>
   mutate(AISelect = ifelse(AISelect == "I don’t use AI tools", "No", "Yes"),
          AISelect = as.factor(AISelect))
 
-dim(data)
+dim(survey)
+
+# Split Multi-Select Columns into their own respective columns to allow for
+# easier modeling
+# GPT-6.1-Sol was used to help with this R code on splitting multi-select
+# columns. 
+
+multi_select_cols <- c(
+  "EmploymentAddl", "RoleFunctions", "PurchasePower",
+  "LanguagesHaveWorkedWith", "LanguagesWantToWorkWith",
+  "DatabasesHaveWorkedWith", "DatabasesWantToWorkWith", "DatabasesAdmired",
+  "CloudPlatHaveWorkedWith", "CloudPlatWantToWorkWith", "CloudPlatAdmired",
+  "WebFrameworkHaveWorkedWith", "WebFrameworkWantToWorkWith",
+  "WebFrameworkAdmired",
+  "CommPlatHaveWorkedWith", "CommPlatWantToWorkWith", "CommPlatAdmired",
+  "KnowMgmtHaveWorkedWith", "KnowMgmtWantToWorkWith",
+  "EntSearchHaveWorkedWith", "EntSearchWantToWorkWith",
+  "SecOpsHaveWorkedWith", "SecOpsWantToWorkWith",
+  "BuildTool", "AnswersTrust", "CommunityType",
+  "KnowledgeQ", "TrustReason", "ContextSelect"
+)
+
+survey_clean <- survey
+
+for (column in multi_select_cols) {
+  
+  # Convert from factor to text
+  survey[[column]] <- as.character(survey[[column]])
+  
+  # Replace missing or blank answers
+  missing <- is.na(survey[[column]]) | trimws(survey[[column]]) == ""
+  survey[[column]][missing] <- "Unanswered"
+}
+
+for (column in multi_select_cols) {
+  
+  # Split each person's answers at the semicolons
+  answers <- strsplit(as.character(survey[[column]]), ";", fixed = TRUE)
+  answers <- lapply(answers, trimws)
+  
+  # Find all possible answer choices
+  choices <- unique(unlist(answers))
+  choices <- choices[!is.na(choices) & choices != ""]
+  
+  for (choice in choices) {
+    
+    # Create a column name, such as LanguagesHaveWorkedWith_Python
+    new_column <- paste(column, choice, sep = "_")
+    
+    # Record 1 if selected and 0 if not selected
+    survey_clean[[new_column]] <- sapply(
+      answers, function(x) as.integer(choice %in% x)
+    )
+  }
+  
+  # Remove the original column after splitting it
+  survey_clean[[column]] <- NULL
+}
+
