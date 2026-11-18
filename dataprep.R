@@ -7,9 +7,9 @@
 
 # Subset data
 # Claude was used to help me with understanding what columns, that did not have
-# AI in the name, could inadvertently be a response variable that would 
-# then predict AISelect which would be bad for the model as there would be
-# a response predicting a response. 
+# AI or Agent in the name, could inadvertently be a response variable that 
+# would then predict AISelect which would be bad for the model as there would 
+# be a response predicting a response. 
 
 
 survey <- survey |> 
@@ -34,8 +34,8 @@ survey <- survey |>
     "AIOrchHaveWorkedWith", "AIOrchWantToUseNext6Months", "AIOrchAdmired",
     "AIObsHaveWorkedWith", "AIObsWantToUseNext6Months", "AIObsAdmired",
     "AICodeAgentHaveWorkedWith", "AICodeAgentWantToUseNext6Months", 
-    "AICodeAgentAdmired", "AINoCodeHaveWorkedWith", 
-    "AINoCodeWantToUseNext6Months", "AINoCodeAdmired",
+    "AICodeAgentAdmired", "AINoCodeHaveWorkedWith", "KnowledgeA",
+    "AINoCodeWantToUseNext6Months", "AINoCodeAdmired", "ToolCount",
     "AIAutomateHaveWorkedWith", "AIAutomateWantToUseNext6Months", 
     "AIAutomateAdmired", "AIUse", "AIAvoid", "AITry", "AIAdopt", "AIToken", 
     "AICost", "AICostPrompt", "KnowledgeSourceAI", "KnowAgentDelegate", 
@@ -56,7 +56,42 @@ survey <- survey |>
            x
          })) 
 
-dim(survey)
+
+# Impute the median for YearsCode and WorkExp
+survey$YearsCode[is.na(survey$YearsCode)] <- 
+  median(survey$YearsCode, na.rm = TRUE)
+
+survey$WorkExp[is.na(survey$WorkExp)] <- 
+  median(survey$WorkExp, na.rm = TRUE)
+
+# I chose to remove the columns above because they has AI in them or something
+# that could be used to influence AI. As noted above, I only used Claude to 
+# choose the variables that didn't include AI or Agent in the name because
+# AI and Agents go together and could have been used as a response variable
+# to whether AI was used or not. Some of these other columns had issues that
+# could have skewed the data in a negative way because of how they were 
+# measured. For example, 'Currency' is an issue because it is measuring the
+# local currency and not USD. Some of these other variables, like ones with
+# IDE have options that are built around agentic coding. Another example
+# is 'KnowledgeA'. KnowledgeA had numerous missing values from developers
+# who did not answer this question. Leaving this variable in could have
+# caused many issues by possibly misrepresenting the number of hours a
+# developer actually spent looking for work information in a week. 
+# ToolCount is also an issue because this is showing how many tools
+# a developer used and if a developer used AI, they might be using
+# more AI tools which might be an issue. Also, it had a chunk of missing
+# values, so imputing it with the median could be misleading. 
+
+# I chose to take all of the non-numeric columns that had a "" or NA and set
+# them to "Unanswered" because that would then prevent a column which has a 
+# significant amount of unanswered questions from being misinterpreted which
+# could affect the results of the model.
+
+# I chose to impute the median for YearsCode and WorkExp because they had
+# a relatively low amount of missing values found in the dataset.
+# Other numeric variables had a much larger percentage of missing values
+
+
 
 # Split Multi-Select Columns into their own respective columns to allow for
 # easier modeling
@@ -105,3 +140,12 @@ for (column in multi_select_cols) {
   # Remove the original column after splitting it
   survey_clean[[column]] <- NULL
 }
+
+# The code above helps because some of the answers were multi-select
+# and that causes an issue because developers could have selected options
+# that would have created way too many variables when there aren't that
+# many that should be like that. By splitting them up, we are able to 
+# narrow down whether there is a specifc option that might help predict
+# whether someone uses AI. 
+# Note that the code above was written by Codex to help with cleaning 
+# and separating the multi-select variables. 
