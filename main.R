@@ -18,7 +18,7 @@ library(tidymodels)
 survey <- read.csv("data/survey_results_public.csv", 
                  stringsAsFactors = TRUE)
 
-# Source rhe dataprep file
+# Source the dataprep file
 source("dataprep.R", local = TRUE)
 
 
